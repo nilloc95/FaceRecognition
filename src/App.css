@@ -1,0 +1,31 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+.center{
+  display: flex;
+  justify-content: center;
+}
+
+.particles{
+  position: fixed;
+  top:0;
+  right:0;
+  left:0;
+  bottom:0;
+  z-index: -1;
+}
+.form{
+  background: linear-gradient(315deg, transparent 75%, #09bdf3 0)-10px 0,
+    linear-gradient(45deg, transparent 75%, #09bdf3 0)-10px 0,
+    linear-gradient(135deg, #115467 50%, transparent 0) 0 0,
+    linear-gradient(45deg, #0d3b47 50%, #238dad 0) 0 0 #238dad;
+    background-size: 20px 20px;
+    width: 700px;
+}
+
