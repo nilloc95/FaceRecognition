@@ -8,11 +8,7 @@ import Rank from './Components/Rank/Rank';
 import ImageLinkForm from './Components/ImageLinkForm/ImageLinkForm';
 import './App.css';
 import Particles from 'react-particles-js';
-import Clarifai from 'clarifai';
 
-const app = new Clarifai.App({
-  apiKey: '54ac658f7bb242589963799c3536d0e3'
- });
 
 const particleParams ={
   particles:{
@@ -26,21 +22,40 @@ const particleParams ={
   }
 }
 
+const initialState = {
+    input: '',
+    imageURL:'',
+    box: {},
+    route: 'SignIn',
+    isSignedIn: false,
+    user: {
+      id: '',
+      name: '',
+      email: '',
+      entries: 0,
+      joined: ''
+    }
+}
+
 class App extends Component{
   constructor(){
     super();
-    this.state ={
-      input: '',
-      imageURL:'',
-      box: {},
-      route: 'SignIn',
-      isSignedIn: false,
-    }
+    this.state = initialState
   } 
+
+  loadUser = (data) =>{
+    this.setState({user: {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      entries: data.entries,
+      joined: data.joined
+    }})
+  }
+
 
   calculateFaceLocation = (data) => {
     const clarifaiFaceBox = data.outputs[0].data.regions[0].region_info.bounding_box;
-    console.log(clarifaiFaceBox)
     const image = document.getElementById('inputimage');
     const w = Number(image.width);
     const h = Number(image.height);
@@ -53,7 +68,6 @@ class App extends Component{
   }
 
   displayFaceBox = (box) => {
-    console.log(box)
     this.setState({'box': box})
   }
 
@@ -62,10 +76,31 @@ class App extends Component{
   }
   onSubmit = (e) => {
     this.setState({ imageURL: this.state.input });
-    app.models.predict(
-      Clarifai.FACE_DETECT_MODEL,
-      this.state.input)
-      .then(response => this.displayFaceBox(this.calculateFaceLocation(response)))
+      fetch('https://murmuring-coast-37889.herokuapp.com/imageurl', {
+        method: 'post',
+        headers: {'Content-type': 'application/json'},
+        body: JSON.stringify({
+            input: this.state.input
+        })
+      })
+      .then(resp => resp.json())
+      .then(response => {
+        if (response){
+          fetch('https://murmuring-coast-37889.herokuapp.com/image', {
+            method: 'put',
+            headers: {'Content-type': 'application/json'},
+            body: JSON.stringify({
+                id: this.state.user.id
+            })
+          })
+            .then(response => response.json())
+            .then(count => {
+              this.setState(Object.assign(this.state.user, {entries: count}))
+            })
+            .catch(console.log)
+        }
+        this.displayFaceBox(this.calculateFaceLocation(response))
+      })
       .catch(error => console.log('error', error))
   }
 
@@ -73,12 +108,19 @@ class App extends Component{
     if (route === 'home'){
       this.setState({isSignedIn: true})
     } else if(route==='SignIn') {
-      this.setState({isSignedIn: false})
+      this.setState(initialState)
     }
     this.setState({route: route})
   }
 
+  onEnter = (event) =>{
+    if (event.keyCode === 13) {
+        this.onSubmit();
+    };
+  } 
+
   render() {
+ 
     const { isSignedIn, imageURL, route, box } = this.state;
     return (
       <div className="App">
@@ -87,14 +129,14 @@ class App extends Component{
         { route === 'home'
             ? <div>
             <Logo />
-            <Rank />
-            <ImageLinkForm onInputChange={this.onInputChange} onSubmit={this.onSubmit}/>
+            <Rank name={this.state.user.name} entries={this.state.user.entries} />
+            <ImageLinkForm onEnter={this.onSubmit} onInputChange={this.onInputChange} onSubmit={this.onSubmit}/>
             <FaceRecognition box={box} imageURL={imageURL}/>
           </div>
             :(
               route === 'SignIn'
-              ? <SignIn onRouteChange={this.onRouteChange}/>
-              : <Register onRouteChange={this.onRouteChange}/>
+              ? <SignIn loadUser={this.loadUser} onRouteChange={this.onRouteChange}/>
+              : <Register loadUser={this.loadUser} onRouteChange={this.onRouteChange}/>
             )
              
           } 
